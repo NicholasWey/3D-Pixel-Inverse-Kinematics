@@ -1,0 +1,10 @@
+{
+  "levels": [
+    {
+      "name": "placeholder-push-lab",
+      "description": "Reserved for a future pushing-task curriculum in the same pixel-art environment.",
+      "enabled": false
+    }
+  ]
+}
+

@@ -1,0 +1,12 @@
+{
+  "levels": [
+    {
+      "name": "sandbox-default",
+      "description": "Reference sandbox layout used by the autonomous pick-and-throw loop.",
+      "block_spawn_annulus": [0.45, 1.1],
+      "target_spawn_annulus": [0.7, 1.45],
+      "min_block_target_distance": 0.55
+    }
+  ]
+}
+
