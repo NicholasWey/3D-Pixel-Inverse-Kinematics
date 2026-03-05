@@ -23,10 +23,11 @@ class SimConfig:
 
 @dataclass(slots=True)
 class ArmConfig:
-    base_height: float = 0.30
+    base_height: float = 0.66
     link1_length: float = 0.72
     link2_length: float = 0.58
-    tool_length: float = 0.18
+    # The control-point offset from forearm joint to the tool link COM in the URDF.
+    tool_length: float = 0.09
     joint_lower_limits: np.ndarray = field(
         default_factory=lambda: np.array(
             [-np.pi, -1.30, -2.15],
@@ -35,7 +36,7 @@ class ArmConfig:
     )
     joint_upper_limits: np.ndarray = field(
         default_factory=lambda: np.array(
-            [np.pi, 1.20, 0.15],
+            [np.pi, 0.95, 0.15],
             dtype=np.float64,
         )
     )
@@ -54,13 +55,15 @@ class ArmConfig:
     velocity_gains: np.ndarray = field(
         default_factory=lambda: np.array([0.92, 0.95, 0.96], dtype=np.float64)
     )
+    disable_arm_floor_collision: bool = False
 
 
 @dataclass(slots=True)
 class SpawnConfig:
     arena_extent_xy: float = 1.75
-    block_annulus_min: float = 0.45
-    block_annulus_max: float = 1.10
+    # Keep block spawns in the physically reachable low-pick ring for this 3-DOF arm.
+    block_annulus_min: float = 1.10
+    block_annulus_max: float = 1.35
     target_annulus_min: float = 0.70
     target_annulus_max: float = 1.45
     min_block_target_distance: float = 0.55
@@ -79,7 +82,7 @@ class PlannerConfig:
     yaw_samples: int = 9
     yaw_offset: float = 0.60
     shoulder_min: float = -0.20
-    shoulder_max: float = 1.05
+    shoulder_max: float = 0.90
     shoulder_samples: int = 8
     elbow_min: float = -1.95
     elbow_max: float = -0.25
@@ -103,10 +106,10 @@ class RenderConfig:
 @dataclass(slots=True)
 class ControlConfig:
     pick_approach_height: float = 0.22
-    pick_contact_height: float = 0.07
+    pick_contact_height: float = 0.10
     waypoint_tolerance: float = 0.06
     release_pose_tolerance: float = 0.08
-    grasp_distance_threshold: float = 0.09
+    grasp_distance_threshold: float = 0.13
     grasp_relative_speed_threshold: float = 1.8
     move_timeout_seconds: float = 3.8
     evaluate_timeout_seconds: float = 4.2

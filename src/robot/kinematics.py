@@ -44,7 +44,7 @@ class ArmKinematics:
             [
                 self.geometry.link1_length * c1 + reach_tail * c12,
                 0.0,
-                self.geometry.link1_length * s1 + reach_tail * s12,
+                -(self.geometry.link1_length * s1 + reach_tail * s12),
             ],
             dtype=np.float64,
         )
@@ -69,7 +69,7 @@ class ArmKinematics:
 
         shoulder = self._base.copy()
         elbow_local = np.array(
-            [self.geometry.link1_length * c1, 0.0, self.geometry.link1_length * s1],
+            [self.geometry.link1_length * c1, 0.0, -self.geometry.link1_length * s1],
             dtype=np.float64,
         )
         elbow = np.array(
@@ -84,7 +84,7 @@ class ArmKinematics:
             [
                 self.geometry.link1_length * c1 + self.geometry.link2_length * c12,
                 0.0,
-                self.geometry.link1_length * s1 + self.geometry.link2_length * s12,
+                -(self.geometry.link1_length * s1 + self.geometry.link2_length * s12),
             ],
             dtype=np.float64,
         )
@@ -114,7 +114,7 @@ class ArmKinematics:
             [
                 -self.geometry.link1_length * s1 - reach_tail * s12,
                 0.0,
-                self.geometry.link1_length * c1 + reach_tail * c12,
+                -(self.geometry.link1_length * c1 + reach_tail * c12),
             ],
             dtype=np.float64,
         )
@@ -122,7 +122,7 @@ class ArmKinematics:
             [
                 -reach_tail * s12,
                 0.0,
-                reach_tail * c12,
+                -reach_tail * c12,
             ],
             dtype=np.float64,
         )
@@ -145,4 +145,3 @@ class ArmKinematics:
         elif norm < min_reach:
             delta *= min_reach / norm
         return self._base + delta
-

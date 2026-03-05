@@ -17,6 +17,9 @@ uniform int u_max_steps;
 uniform int u_shadow_steps;
 uniform float u_far_distance;
 uniform float u_hit_epsilon;
+uniform float u_zoom_t;
+uniform float u_exposure;
+uniform float u_contrast;
 
 uniform vec3 u_capsule_a0;
 uniform vec3 u_capsule_b0;
@@ -148,49 +151,54 @@ float soft_shadow(vec3 ro, vec3 rd) {
 
 vec3 sky_color(vec3 rd) {
     float horizon = clamp(0.5 + 0.5 * rd.z, 0.0, 1.0);
-    vec3 low = vec3(0.44, 0.64, 0.90);
-    vec3 high = vec3(0.78, 0.90, 1.00);
+    vec3 low = vec3(0.30, 0.46, 0.70);
+    vec3 high = vec3(0.58, 0.72, 0.90);
     vec3 c = mix(low, high, pow(horizon, 0.65));
-    float cloud = 0.03 * sin(rd.x * 8.5 + u_time * 0.10) * sin(rd.y * 7.0 - u_time * 0.08);
+    float cloud = 0.02 * sin(rd.x * 8.5 + u_time * 0.10) * sin(rd.y * 7.0 - u_time * 0.08);
     return c + cloud;
 }
 
 vec3 floor_color(vec3 p) {
     vec2 cell = floor(p.xy * 3.2);
     float checker = mod(cell.x + cell.y, 2.0);
-    vec3 a = vec3(0.28, 0.30, 0.33);
-    vec3 b = vec3(0.22, 0.24, 0.27);
+    vec3 a = vec3(0.24, 0.27, 0.31);
+    vec3 b = vec3(0.18, 0.21, 0.25);
     float noise = hash12(cell * 0.31) * 0.04;
     return mix(a, b, checker) + noise;
 }
 
 vec3 shade_hit(vec3 ro, vec3 rd, vec3 p, vec3 n, float mat_id) {
-    vec3 light_dir = normalize(vec3(-0.5, 0.65, 0.85));
-    float lambert = max(dot(n, light_dir), 0.0);
-    float shadow = soft_shadow(p + n * 0.004, light_dir);
-    float lit = floor((lambert * shadow) * 4.0 + 0.5) / 4.0;
-    float ambient = 0.24;
-    float spec = pow(max(dot(reflect(-light_dir, n), -rd), 0.0), 36.0) * 0.15 * shadow;
+    vec3 key_dir = normalize(vec3(-0.54, 0.62, 0.84));
+    vec3 fill_dir = normalize(vec3(0.42, -0.30, 0.66));
+    float key = max(dot(n, key_dir), 0.0);
+    float key_shadow = soft_shadow(p + n * 0.004, key_dir);
+    float key_lit = floor((key * key_shadow) * 5.0 + 0.5) / 5.0;
+    float fill = max(dot(n, fill_dir), 0.0);
+    float hemi = mix(0.32, 0.98, clamp(n.z * 0.5 + 0.5, 0.0, 1.0));
+    vec3 half_vec = normalize(key_dir - rd);
+    float spec = pow(max(dot(n, half_vec), 0.0), 44.0) * 0.22 * key_shadow;
 
     vec3 base = vec3(0.4);
     vec3 emissive = vec3(0.0);
     if (mat_id < 1.5) {
         base = floor_color(p);
     } else if (mat_id < 2.5) {
-        base = vec3(0.55, 0.58, 0.62);
+        base = vec3(0.64, 0.68, 0.73);
     } else if (mat_id < 3.5) {
-        base = vec3(0.92, 0.34, 0.23);
+        base = vec3(0.96, 0.44, 0.23);
     } else if (mat_id < 4.5) {
-        base = vec3(0.20, 0.72, 0.95);
-        emissive = vec3(0.08, 0.18, 0.22);
+        base = vec3(0.26, 0.76, 0.98);
+        emissive = vec3(0.09, 0.20, 0.25);
     } else {
-        base = vec3(0.95, 0.57, 0.16);
-        emissive = vec3(0.24, 0.13, 0.04);
+        base = vec3(0.98, 0.67, 0.20);
+        emissive = vec3(0.23, 0.14, 0.05);
     }
 
-    vec3 color = base * (ambient + 0.78 * lit) + spec + emissive;
+    vec3 color = base * (0.16 + 0.74 * key_lit + 0.24 * fill + 0.20 * hemi) + spec + emissive;
+    float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.6);
+    color += base * rim * mix(0.14, 0.30, u_zoom_t);
     float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);
-    color *= 1.0 - 0.26 * fresnel;
+    color *= 1.0 + 0.08 * fresnel;
     return color;
 }
 
@@ -223,8 +231,8 @@ vec3 trace_scene(vec3 ro, vec3 rd) {
     vec3 p = ro + rd * t;
     vec3 n = calc_normal(p);
     vec3 col = shade_hit(ro, rd, p, n, mat_id);
-    float fog_density = 1.2 / max(1.0, u_far_distance);
-    float fog = exp(-fog_density * t * t);
+    float fog_density = mix(0.030, 0.014, u_zoom_t);
+    float fog = exp(-fog_density * t);
     return mix(sky_color(rd), col, fog);
 }
 
@@ -243,8 +251,13 @@ void main() {
     );
 
     vec3 color = trace_scene(u_cam_pos, rd);
+    color = vec3(1.0) - exp(-color * u_exposure);
+    color = pow(color, vec3(0.93));
+    color = (color - 0.5) * u_contrast + 0.5;
     float dith = (hash12(floor(frag)) - 0.5) / 110.0;
     color = clamp(color + dith, 0.0, 1.0);
-    color = nearest_palette(color);
+    vec3 palette_color = nearest_palette(color);
+    float palette_strength = mix(1.0, 0.72, u_zoom_t);
+    color = mix(color, palette_color, palette_strength);
     fragColor = vec4(color, 1.0);
 }

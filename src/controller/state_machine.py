@@ -122,8 +122,6 @@ class ArmController:
                 self._transition(ArmPhase.PLAN_PICK)
             else:
                 target = self.pick_waypoints[self.pick_stage].copy()
-                if self.pick_stage == len(self.pick_waypoints) - 1:
-                    target = block_pos + np.array([0.0, 0.0, self.control_config.pick_contact_height], dtype=np.float64)
                 ik = self.ik_solver.solve(
                     target=target,
                     initial_guess=joint_state.positions,
@@ -232,4 +230,3 @@ class ArmController:
             render_capsule_b=capsule_b,
             render_capsule_r=capsule_r,
         )
-

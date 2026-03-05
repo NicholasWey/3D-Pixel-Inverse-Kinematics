@@ -157,6 +157,13 @@ class PixelArmWindow(WindowConfig):
         self.ctx.disable(moderngl.DEPTH_TEST)
 
         camera_pos, forward, right, up = self._camera_vectors()
+        zoom_t = float(
+            np.clip(
+                (self.radius - self.min_radius) / max(1e-6, (self.max_radius - self.min_radius)),
+                0.0,
+                1.0,
+            )
+        )
         self._set_uniform("u_resolution", (float(width), float(height)))
         self._set_uniform("u_time", float(state.sim_time))
         self._set_uniform("u_cam_pos", tuple(float(v) for v in camera_pos))
@@ -177,11 +184,17 @@ class PixelArmWindow(WindowConfig):
 
         self._set_uniform("u_fov_y", self.fov_y)
         self._set_uniform("u_floor_extent", dynamic_floor_extent)
-        self._set_uniform("u_pixel_size", float(self.render_config.pixel_size))
+        effective_pixel_size = float(
+            np.clip(self.render_config.pixel_size * (1.0 - 0.45 * zoom_t), 1.0, self.render_config.pixel_size)
+        )
+        self._set_uniform("u_pixel_size", effective_pixel_size)
         self._set_uniform("u_max_steps", dynamic_max_steps)
         self._set_uniform("u_shadow_steps", dynamic_shadow_steps)
         self._set_uniform("u_far_distance", dynamic_far_distance)
         self._set_uniform("u_hit_epsilon", dynamic_hit_epsilon)
+        self._set_uniform("u_zoom_t", zoom_t)
+        self._set_uniform("u_exposure", float(1.08 + 0.24 * zoom_t))
+        self._set_uniform("u_contrast", float(1.06 + 0.18 * zoom_t))
 
         self._set_uniform("u_capsule_a0", tuple(float(v) for v in state.render_capsule_a[0]))
         self._set_uniform("u_capsule_b0", tuple(float(v) for v in state.render_capsule_b[0]))

@@ -49,6 +49,8 @@ class PhysicsWorld:
             useFixedBase=True,
             physicsClientId=self.client,
         )
+        if self.arm_config.disable_arm_floor_collision:
+            self._set_arm_floor_collision(enabled=False)
 
         self.control_joint_names = ("base_yaw", "shoulder_pitch", "elbow_pitch")
         self.joint_indices = self._resolve_joint_indices()
@@ -80,6 +82,20 @@ class PhysicsWorld:
         self.sim_time = 0.0
 
         self.reset_arm_pose(self.arm_config.home_joint_positions)
+
+    def _set_arm_floor_collision(self, enabled: bool) -> None:
+        flag = 1 if enabled else 0
+        joint_count = p.getNumJoints(self.robot_id, physicsClientId=self.client)
+        # Disable collisions between the plane and articulated links (keep base link unchanged).
+        for link_index in range(joint_count):
+            p.setCollisionFilterPair(
+                self.robot_id,
+                self.plane_id,
+                link_index,
+                -1,
+                flag,
+                physicsClientId=self.client,
+            )
 
     def _resolve_joint_indices(self) -> list[int]:
         mapping: dict[str, int] = {}
@@ -278,4 +294,3 @@ class PhysicsWorld:
         if self.client >= 0:
             p.disconnect(physicsClientId=self.client)
             self.client = -1
-
